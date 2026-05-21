@@ -515,11 +515,7 @@
       if (!catalogAsset) throw new Error('catalog.json not found in release assets. Run ingest.py first.');
 
       // Step 2: download catalog.json using the asset API (handles redirect correctly)
-      const catalogRes = await fetch(catalogAsset.url, {
-        headers: {
-          'Accept': 'application/octet-stream',
-        }
-      });
+      const catalogRes = await fetch(catalogAsset.browser_download_url);
       if (!catalogRes.ok) throw new Error(`catalog download failed (${catalogRes.status})`);
 
       const data = await catalogRes.json();
