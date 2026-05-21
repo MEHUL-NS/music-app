@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0a0a0a" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="music." />
   <title>music.</title>
@@ -478,11 +478,6 @@
 <audio id="audio-player"></audio>
 
 <script>
-  // ── Config — update these to match your GitHub ──────────────────────────────
-  const GH_USER    = 'MEHUL-NS';           // your GitHub username
-  const GH_REPO    = 'music-library';      // your music repo name
-  const GH_RELEASE = 'music-library';      // your release tag name
-
   // ── State ────────────────────────────────────────────────────────────────────
   let tracks = [];
   let currentIndex = -1;
@@ -497,34 +492,20 @@
     if (name === 'analytics') renderAnalytics();
   }
 
-  // ── Load Tracks from GitHub Releases ─────────────────────────────────────────
+  // ── Load Tracks from catalog.json (same repo, served by GitHub Pages) ─────────
   async function loadTracks() {
     const list = document.getElementById('track-list');
     list.innerHTML = `<div class="state-box"><div class="spinner"></div><span>fetching library...</span></div>`;
 
     try {
-      // Step 1: get the release metadata to find catalog.json asset
-      const releaseRes = await fetch(
-        `https://api.github.com/repos/${GH_USER}/${GH_REPO}/releases/tags/${GH_RELEASE}`,
-        { headers: { 'Accept': 'application/vnd.github+json' } }
-      );
-      if (!releaseRes.ok) throw new Error(`GitHub API ${releaseRes.status}`);
-      const release = await releaseRes.json();
-
-      const catalogAsset = (release.assets || []).find(a => a.name === 'catalog.json');
-      if (!catalogAsset) throw new Error('catalog.json not found in release assets. Run ingest.py first.');
-
-      // Step 2: download catalog.json using the asset API (handles redirect correctly)
-      const catalogRes = await fetch(catalogAsset.browser_download_url);
-      if (!catalogRes.ok) throw new Error(`catalog download failed (${catalogRes.status})`);
-
-      const data = await catalogRes.json();
+      // catalog.json lives in the same repo, served directly by GitHub Pages
+      const res = await fetch('./catalog.json?t=' + Date.now());
+      if (!res.ok) throw new Error(`catalog.json not found (${res.status}) — upload it to the repo`);
+      const data = await res.json();
       tracks = data.tracks || [];
-
       document.getElementById('track-count').textContent =
         `${tracks.length} track${tracks.length !== 1 ? 's' : ''}`;
       renderTrackList();
-
     } catch (e) {
       list.innerHTML = `
         <div class="state-box">
@@ -627,7 +608,6 @@
   function renderAnalytics() {
     const monthStart = getMonthStart();
     const plays = getPlays().filter(p => p.ts >= monthStart);
-
     document.getElementById('month-label').textContent =
       new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
     document.getElementById('total-plays').textContent = plays.length;
